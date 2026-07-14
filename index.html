@@ -780,6 +780,9 @@ select.speed{background:var(--surface-2); border:none; border-radius:10px; paddi
           <div class="info"><b>Speak translations aloud</b><span>Interpreter reads each translation automatically</span></div>
           <button class="switch on" id="autoSpeakSw" role="switch" aria-checked="true" aria-label="Speak translations aloud"></button>
         </div>
+        <div class="set-row">
+          <div class="info"><b>Translation engine</b><span id="engineInfo">—</span></div>
+        </div>
       </div>
 
       <p class="set-title">Voice</p>
@@ -815,7 +818,7 @@ select.speed{background:var(--surface-2); border:none; border-radius:10px; paddi
           <button class="ghost-btn danger" id="clearHistBtn">Clear</button>
         </div>
       </div>
-      <p class="hint" style="text-align:left">Global Communications · Version 3.1 · First stable release · 83 languages · Translations powered by Claude. Voice input and playback use your device's speech engine.</p>
+      <p class="hint" style="text-align:left">Global Communications · Version 3.2 · Stable · 83 languages · Translations powered by Claude. Voice input and playback use your device's speech engine.</p>
     </section>
   </main>
 
@@ -876,6 +879,9 @@ const IN_CLAUDE = typeof window.storage !== "undefined";
 const CONFIG = {
   API_URL: "", // e.g. "https://gc-translate.yourname.workers.dev"
 };
+/* Engine selection: Claude inside the preview; your server once API_URL is set;
+   otherwise a free public engine (text & interpreter only). */
+function engineMode(){ return IN_CLAUDE ? "claude" : (CONFIG.API_URL ? "server" : "free"); }
 /* ============================================================
    GLOBAL COMMUNICATIONS v3 — application logic
    Modules:
@@ -1177,11 +1183,50 @@ const TranslationService = {
     this.cache.set(key, val);
   },
 
+  /* ---- Free engine (no API key needed): Google public endpoint, MyMemory fallback ---- */
+  _gCode(code){ return ({fil:"tl", zh:"zh-CN"})[code] || code; },
+  _codeToName(code){
+    if(!code) return "";
+    const c = String(code).toLowerCase().split("-")[0];
+    const extra = {tl:"Filipino", iw:"Hebrew", jw:"Javanese", zh:"Chinese (Mandarin)"};
+    if(extra[c]) return extra[c];
+    const l = LANGUAGES.find(x => x.code === c);
+    return l ? l.name : code;
+  },
+  async _freeTranslate(text, srcName, tgtName){
+    const srcCode = srcName === "Auto Detect" ? "auto" : ((langByName(srcName) || {}).code || "auto");
+    const tgtCode = (langByName(tgtName) || {}).code || "en";
+    const sl = srcCode === "auto" ? "auto" : this._gCode(srcCode);
+    const tl = this._gCode(tgtCode);
+    try{
+      const res = await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=" + sl + "&tl=" + tl + "&dt=t&q=" + encodeURIComponent(text));
+      if(!res.ok) throw 0;
+      const data = await res.json();
+      const translation = (data[0] || []).map(seg => (seg && seg[0]) ? seg[0] : "").join("").trim();
+      if(!translation) throw 0;
+      return {detected: srcName === "Auto Detect" ? (this._codeToName(data[2]) || "Auto") : srcName, translation};
+    }catch(_){
+      if(text.length > 480) throw new Error("The free engine couldn't translate this long text right now — try a shorter text, or try again.");
+      const pairSrc = sl === "auto" ? "Autodetect" : sl;
+      const res2 = await fetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(text) + "&langpair=" + encodeURIComponent(pairSrc + "|" + tl));
+      if(!res2.ok) throw new Error("Free translation is temporarily unavailable. Try again in a moment.");
+      const d2 = await res2.json();
+      const t2 = d2 && d2.responseData && d2.responseData.translatedText;
+      if(!t2 || (d2.responseStatus && d2.responseStatus !== 200)) throw new Error("Free translation is temporarily unavailable. Try again in a moment.");
+      return {detected: srcName, translation: t2};
+    }
+  },
+
   /** Translate text. Fast path when the source is known: plain-text response. */
   async translate(text, srcName, tgtName){
     const key = srcName + "|" + tgtName + "|" + text;
     const hit = this.cache.get(key);
     if(hit) return hit;
+    if(engineMode() === "free"){
+      const out = await this._freeTranslate(text, srcName, tgtName);
+      this._cachePut(key, out);
+      return out;
+    }
     const maxTokens = Math.min(2400, Math.max(300, Math.ceil(text.length * 3)));
     let out;
     if(srcName !== "Auto Detect"){
@@ -1209,6 +1254,11 @@ Respond with ONLY a valid JSON object, no markdown, exactly:
   /** OCR + translate an image. Returns {original, detected, translation, error}.
       error: "" | "no_text" | "unclear" | "unknown_language" */
   async translateImage(base64, mediaType, tgtName){
+    if(engineMode() === "free"){
+      const e = new Error("This feature uses the premium AI engine, which the free version doesn't include yet. Text Translation and the Interpreter are fully free — camera and sign language unlock once the app's translation server is set up (see README).");
+      e.premium = true;
+      throw e;
+    }
     const content = [
       {type: "image", source: {type: "base64", media_type: mediaType, data: base64}},
       {type: "text", text:
@@ -1230,6 +1280,11 @@ Error cases — use these instead when they apply:
       {recognized, meaning, translation, confidence, error}
       error: "" | "no_hands" | "unclear" */
   async readSign(frames, tgtName){
+    if(engineMode() === "free"){
+      const e = new Error("This feature uses the premium AI engine, which the free version doesn't include yet. Text Translation and the Interpreter are fully free — camera and sign language unlock once the app's translation server is set up (see README).");
+      e.premium = true;
+      throw e;
+    }
     const content = frames.map(b64 => ({type:"image", source:{type:"base64", media_type:"image/jpeg", data:b64}}));
     content.push({type:"text", text:
 `These ${frames.length} sequential frames (in order, a fraction of a second apart) show a person performing sign language — most likely an ASL sign or fingerspelled letters, but consider other sign languages too.
@@ -1996,7 +2051,7 @@ const Camera = {
       this._showState("ok");
       History.add({srcName: out.detected || "Camera", tgtName: tgt.name, srcCode: "auto", tgtCode: state.camTgt, input: out.original, output: out.translation});
     }catch(err){
-      this._showError(CAM_ERRORS.failed);
+      this._showError(err && err.premium ? err.message : CAM_ERRORS.failed);
     }
   },
 };
@@ -2133,7 +2188,7 @@ const SignCam = {
       this._showState("ok");
       History.add({srcName: "Sign Language", tgtName: tgt.name, srcCode: "auto", tgtCode: state.signTgt, input: out.recognized || out.meaning, output: out.translation || out.meaning});
     }catch(err){
-      this._showError(SIGN_ERRORS.failed);
+      this._showError(err && err.premium ? err.message : SIGN_ERRORS.failed);
     }
   },
 };
@@ -2256,6 +2311,11 @@ function refreshSettingsUI(){
   instantSw.classList.toggle("on", state.autoTranslate);
   instantSw.setAttribute("aria-checked", String(state.autoTranslate));
   document.getElementById("speedSel").value = String(state.speechRate);
+  const em = engineMode();
+  document.getElementById("engineInfo").textContent =
+    em === "claude" ? "Claude AI (preview)" :
+    em === "server" ? "Claude AI via your server — all features enabled" :
+    "Free engine — text & interpreter free; camera & sign need the premium engine";
   els.trHint.textContent = state.autoTranslate
     ? "Instant translate is on — just pause typing. Ctrl + Enter also works."
     : "Press Translate or Ctrl + Enter (⌘ + Enter).";
