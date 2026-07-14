@@ -1390,30 +1390,52 @@ const Speech = {
       this.stopSpeaking();
       const voice = (forcedVoiceName && this._voices.find(v => v.name === forcedVoiceName)) || this.bestVoice(lang);
       const chunks = this._chunk(text);
-      let i = 0;
+      let i = 0, retried = false, anyStarted = false;
       this._speaking = true;
       onStateChange && onStateChange(true);
-      // Desktop Chrome pauses long synthesis (~15s); the pause/resume nudge fixes it there
-      // but breaks playback on Android, so gate it to desktop only.
-      const desktopChrome = /Chrome/.test(navigator.userAgent) && !/Android|Mobi/i.test(navigator.userAgent);
+      // Chrome desktop pauses long synthesis (~15s); a nudge fixes it — but the same
+      // nudge breaks Edge's Natural voices and Android, so it's genuine-Chrome-only.
+      const ua = navigator.userAgent;
+      const desktopChrome = /Chrome/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Android|Mobi/i.test(ua);
       if(desktopChrome)
         this._keepAlive = setInterval(() => { if(speechSynthesis.speaking && !speechSynthesis.paused){ speechSynthesis.pause(); speechSynthesis.resume(); } }, 9000);
       const done = () => {
         clearInterval(this._keepAlive); this._keepAlive = null;
+        const failed = !anyStarted && retried; // we retried and still heard nothing
         this._speaking = false;
         onStateChange && onStateChange(false);
+        if(failed) toast("Couldn't play audio — tap the voice icon and try a different voice.");
         resolve();
+      };
+      const speakChunk = (chunkText, useVoice) => {
+        const u = new SpeechSynthesisUtterance(chunkText);
+        u.lang = lang; u.rate = state.speechRate; u.pitch = 1; u.volume = 1;
+        if(useVoice) u.voice = useVoice;
+        let started = false;
+        u.onstart = () => { started = true; anyStarted = true; };
+        u.onend = () => next();
+        u.onerror = () => {
+          if(!this._speaking){ done(); return; }
+          if(!retried){ retried = true; try{ speechSynthesis.cancel(); }catch(_){} setTimeout(() => speakChunk(chunkText, null), 120); }
+          else done();
+        };
+        // Watchdog: engines sometimes drop an utterance silently (no start, no error).
+        setTimeout(() => {
+          if(this._speaking && !started && !speechSynthesis.speaking && !speechSynthesis.pending){
+            if(!retried){ retried = true; try{ speechSynthesis.cancel(); }catch(_){} setTimeout(() => speakChunk(chunkText, null), 120); }
+            else done();
+          }
+        }, 1600);
+        speechSynthesis.speak(u);
       };
       const next = () => {
         if(!this._speaking || i >= chunks.length){ done(); return; }
-        const u = new SpeechSynthesisUtterance(chunks[i++]);
-        u.lang = lang; u.rate = state.speechRate; u.pitch = 1;
-        if(voice) u.voice = voice;
-        u.onend = next;
-        u.onerror = done;
-        speechSynthesis.speak(u);
+        speakChunk(chunks[i++], voice);
       };
-      next();
+      // Un-stick a paused engine, and give cancel() a beat to settle before speaking —
+      // speaking immediately after cancel() is silently dropped in Chrome/Edge.
+      try{ speechSynthesis.cancel(); speechSynthesis.resume(); }catch(_){}
+      setTimeout(next, 80);
     });
   },
 
