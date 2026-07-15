@@ -388,6 +388,9 @@ select.speed{background:var(--surface-2); border:none; border-radius:10px; paddi
 .v-play{width:34px; height:34px; border-radius:50%; display:grid; place-items:center; color:var(--accent); background:var(--accent-soft); flex:none}
 .voice-help{padding:18px; margin:10px; border-radius:var(--r-md); background:var(--surface-2); color:var(--ink-2); font-size:13.5px; line-height:1.7}
 .voice-help b{display:block; margin-bottom:6px; color:var(--ink); font-size:14.5px}
+.ghost-btn.novoice{opacity:.7; border-style:dashed}
+.v-ind{color:var(--teal); display:grid; place-items:center; padding:4px; flex:none}
+.v-ind.off{color:var(--ink-3); opacity:.55}
 
 /* ---------- Small phones & narrow previews ---------- */
 @media (max-width:420px){
@@ -588,7 +591,7 @@ select.speed{background:var(--surface-2); border:none; border-radius:10px; paddi
           <div class="tr-tools">
             <button class="ghost-btn" id="speakBtn" disabled aria-label="Listen to translation">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6.5 9H3v6h3.5L11 19zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
-              Listen
+              <span id="speakLbl">Listen</span>
             </button>
             <button class="icon-btn" id="voiceBtn" title="Change voice" aria-label="Choose the voice for this language">
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M7.5 8v8M16.5 8v8M3 11v2M21 11v2"/></svg>
@@ -610,7 +613,7 @@ select.speed{background:var(--surface-2); border:none; border-radius:10px; paddi
 
     <!-- INTERPRETER -->
     <section class="view" id="view-interpreter" aria-label="Live interpreter">
-      <div class="page-head"><div><h2>Live Interpreter</h2><p>Each person taps their button, speaks, and hears the other side in their own language.</p></div></div>
+      <div class="page-head"><div><h2>Live Interpreter</h2><p>Each person taps their button, speaks, and hears the other side in their own language.</p></div><button class="ghost-btn" id="itpClearBtn">Clear chat</button></div>
       <div class="panel itp-wrap">
         <div class="itp-chat" id="itpChat">
           <div class="itp-empty" id="itpEmpty">Choose a language for each person below,<br>then tap a microphone to start the conversation.</div>
@@ -818,7 +821,7 @@ select.speed{background:var(--surface-2); border:none; border-radius:10px; paddi
           <button class="ghost-btn danger" id="clearHistBtn">Clear</button>
         </div>
       </div>
-      <p class="hint" style="text-align:left">Global Communications · Version 3.2 · Stable · 83 languages · Translations powered by Claude. Voice input and playback use your device's speech engine.</p>
+      <p class="hint" style="text-align:left">Global Communications · Version 3.4 · Stable · 100 languages · Translations powered by Claude. Voice input and playback use your device's speech engine.</p>
     </section>
   </main>
 
@@ -843,7 +846,7 @@ select.speed{background:var(--surface-2); border:none; border-radius:10px; paddi
       </div>
       <div class="picker-search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
-        <input id="pickerSearch" type="search" placeholder="Search 83 languages" autocomplete="off">
+        <input id="pickerSearch" type="search" placeholder="Search 100 languages" autocomplete="off">
       </div>
     </div>
     <div class="picker-body" id="pickerBody"></div>
@@ -1014,6 +1017,7 @@ const LANGUAGES = [
   {code:"bg", name:"Bulgarian",  native:"Български",   speech:"bg-BG"},
   {code:"my", name:"Burmese",    native:"မြန်မာ",        speech:"my-MM"},
   {code:"ca", name:"Catalan",    native:"Català",      speech:"ca-ES"},
+  {code:"ceb",name:"Cebuano",    native:"Binisaya",    speech:"ceb-PH"},
   {code:"yue",name:"Chinese (Cantonese)", native:"廣東話", speech:"zh-HK"},
   {code:"zh", name:"Chinese (Mandarin)",  native:"中文",  speech:"zh-CN"},
   {code:"hr", name:"Croatian",   native:"Hrvatski",    speech:"hr-HR"},
@@ -1021,15 +1025,19 @@ const LANGUAGES = [
   {code:"da", name:"Danish",     native:"Dansk",       speech:"da-DK"},
   {code:"nl", name:"Dutch",      native:"Nederlands",  speech:"nl-NL"},
   {code:"en", name:"English",    native:"English",     speech:"en-US"},
+  {code:"eo", name:"Esperanto",  native:"Esperanto",   speech:"eo"},
   {code:"et", name:"Estonian",   native:"Eesti",       speech:"et-EE"},
   {code:"fil",name:"Filipino",   native:"Filipino",    speech:"fil-PH"},
   {code:"fi", name:"Finnish",    native:"Suomi",       speech:"fi-FI"},
   {code:"fr", name:"French",     native:"Français",    speech:"fr-FR"},
+  {code:"gl", name:"Galician",   native:"Galego",      speech:"gl-ES"},
   {code:"ka", name:"Georgian",   native:"ქართული",     speech:"ka-GE"},
   {code:"de", name:"German",     native:"Deutsch",     speech:"de-DE"},
   {code:"el", name:"Greek",      native:"Ελληνικά",    speech:"el-GR"},
   {code:"gu", name:"Gujarati",   native:"ગુજરાતી",      speech:"gu-IN"},
+  {code:"ht", name:"Haitian Creole", native:"Kreyòl ayisyen", speech:"ht-HT"},
   {code:"ha", name:"Hausa",      native:"Hausa",       speech:"ha-NG"},
+  {code:"haw",name:"Hawaiian",   native:"ʻŌlelo Hawaiʻi", speech:"haw-US"},
   {code:"he", name:"Hebrew",     native:"עברית",       speech:"he-IL"},
   {code:"hi", name:"Hindi",      native:"हिन्दी",        speech:"hi-IN"},
   {code:"hu", name:"Hungarian",  native:"Magyar",      speech:"hu-HU"},
@@ -1043,15 +1051,21 @@ const LANGUAGES = [
   {code:"kn", name:"Kannada",    native:"ಕನ್ನಡ",        speech:"kn-IN"},
   {code:"kk", name:"Kazakh",     native:"Қазақша",     speech:"kk-KZ"},
   {code:"km", name:"Khmer",      native:"ខ្មែរ",         speech:"km-KH"},
+  {code:"rw", name:"Kinyarwanda",native:"Ikinyarwanda",speech:"rw-RW"},
   {code:"ko", name:"Korean",     native:"한국어",       speech:"ko-KR"},
   {code:"ku", name:"Kurdish",    native:"Kurdî",       speech:"ku-TR"},
+  {code:"ky", name:"Kyrgyz",     native:"Кыргызча",    speech:"ky-KG"},
   {code:"lo", name:"Lao",        native:"ລາວ",         speech:"lo-LA"},
+  {code:"la", name:"Latin",      native:"Latina",      speech:"la"},
   {code:"lv", name:"Latvian",    native:"Latviešu",    speech:"lv-LV"},
   {code:"lt", name:"Lithuanian", native:"Lietuvių",    speech:"lt-LT"},
+  {code:"lb", name:"Luxembourgish", native:"Lëtzebuergesch", speech:"lb-LU"},
   {code:"mk", name:"Macedonian", native:"Македонски",  speech:"mk-MK"},
+  {code:"mg", name:"Malagasy",   native:"Malagasy",    speech:"mg-MG"},
   {code:"ms", name:"Malay",      native:"Bahasa Melayu", speech:"ms-MY"},
   {code:"ml", name:"Malayalam",  native:"മലയാളം",      speech:"ml-IN"},
   {code:"mt", name:"Maltese",    native:"Malti",       speech:"mt-MT"},
+  {code:"mi", name:"Maori",      native:"Te Reo Māori",speech:"mi-NZ"},
   {code:"mr", name:"Marathi",    native:"मराठी",        speech:"mr-IN"},
   {code:"mn", name:"Mongolian",  native:"Монгол",      speech:"mn-MN"},
   {code:"ne", name:"Nepali",     native:"नेपाली",        speech:"ne-NP"},
@@ -1064,7 +1078,10 @@ const LANGUAGES = [
   {code:"pa", name:"Punjabi",    native:"ਪੰਜਾਬੀ",       speech:"pa-IN"},
   {code:"ro", name:"Romanian",   native:"Română",      speech:"ro-RO"},
   {code:"ru", name:"Russian",    native:"Русский",     speech:"ru-RU"},
+  {code:"sm", name:"Samoan",     native:"Gagana Sāmoa",speech:"sm-WS"},
+  {code:"gd", name:"Scots Gaelic", native:"Gàidhlig",  speech:"gd-GB"},
   {code:"sr", name:"Serbian",    native:"Српски",      speech:"sr-RS"},
+  {code:"st", name:"Sesotho",    native:"Sesotho",     speech:"st-ZA"},
   {code:"si", name:"Sinhala",    native:"සිංහල",        speech:"si-LK"},
   {code:"sk", name:"Slovak",     native:"Slovenčina",  speech:"sk-SK"},
   {code:"sl", name:"Slovenian",  native:"Slovenščina", speech:"sl-SI"},
@@ -1072,6 +1089,7 @@ const LANGUAGES = [
   {code:"es", name:"Spanish",    native:"Español",     speech:"es-ES"},
   {code:"sw", name:"Swahili",    native:"Kiswahili",   speech:"sw-KE"},
   {code:"sv", name:"Swedish",    native:"Svenska",     speech:"sv-SE"},
+  {code:"tg", name:"Tajik",      native:"Тоҷикӣ",      speech:"tg-TJ"},
   {code:"ta", name:"Tamil",      native:"தமிழ்",        speech:"ta-IN"},
   {code:"te", name:"Telugu",     native:"తెలుగు",       speech:"te-IN"},
   {code:"th", name:"Thai",       native:"ไทย",         speech:"th-TH"},
@@ -1081,6 +1099,8 @@ const LANGUAGES = [
   {code:"uz", name:"Uzbek",      native:"Oʻzbekcha",   speech:"uz-UZ"},
   {code:"vi", name:"Vietnamese", native:"Tiếng Việt",  speech:"vi-VN"},
   {code:"cy", name:"Welsh",      native:"Cymraeg",     speech:"cy-GB"},
+  {code:"xh", name:"Xhosa",      native:"isiXhosa",    speech:"xh-ZA"},
+  {code:"yi", name:"Yiddish",    native:"ייִדיש",       speech:"yi"},
   {code:"yo", name:"Yoruba",     native:"Yorùbá",      speech:"yo-NG"},
   {code:"zu", name:"Zulu",       native:"isiZulu",     speech:"zu-ZA"},
 ];
@@ -1315,7 +1335,11 @@ const Speech = {
     if(!("speechSynthesis" in window)) return;
     const load = () => {
       const v = speechSynthesis.getVoices();
-      if(v.length){ this._voices = v; this._voiceCache.clear(); return true; }
+      if(v.length){
+        this._voices = v; this._voiceCache.clear();
+        try{ document.dispatchEvent(new CustomEvent("gc:voices")); }catch(_){}
+        return true;
+      }
       return false;
     };
     // Some browsers never fire voiceschanged — poll for up to ~3s as well.
@@ -1457,7 +1481,7 @@ const Speech = {
     rec.onerror = e => {
       const msgs = {
         "not-allowed": "Microphone access was blocked. Allow it in your browser settings.",
-        "no-speech": "No speech detected. Tap the mic and try again.",
+        "no-speech": "Didn\u2019t catch that \u2014 please repeat slowly and clearly, then tap the mic again.",
         "audio-capture": "No microphone found on this device.",
         "network": "Speech recognition needs a network connection.",
         "language-not-supported": "This device's speech recognition doesn't support that language yet. You can still type.",
@@ -1715,6 +1739,16 @@ const Picker = {
       this.onPick && this.onPick(lang.code);
     });
     row.appendChild(pickBtn);
+    if(lang.speech){
+      const has = this._voiced && this._voiced.has(lang.speech.split("-")[0].toLowerCase());
+      const vi = document.createElement("span");
+      vi.className = "v-ind" + (has ? "" : " off");
+      vi.title = has ? "Voice available on this device" : "No voice on this device — translation still works";
+      vi.innerHTML = has
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6.5 9H3v6h3.5L11 19zM15.5 8.5a5 5 0 0 1 0 7"/></svg>'
+        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6.5 9H3v6h3.5L11 19z"/><path d="m16 10 4 4m0-4-4 4"/></svg>';
+      row.appendChild(vi);
+    }
     if(lang.code !== "auto"){
       const star = document.createElement("button");
       const faved = state.favorites.has(lang.code);
@@ -1734,6 +1768,7 @@ const Picker = {
   render(query){
     const q = query.trim().toLowerCase();
     this.body.innerHTML = "";
+    this._voiced = new Set(Speech._voices.map(v => v.lang.toLowerCase().replace("_","-").split("-")[0]));
     const match = l => !q || l.name.toLowerCase().includes(q) || l.native.toLowerCase().includes(q);
     const addSec = (label, langs) => {
       if(!langs.length) return;
@@ -1777,6 +1812,15 @@ const els = {
   trHint: document.getElementById("trHint"),
 };
 
+/* Does this device have any voice for the language? (translation works either way) */
+function speakSupported(code){
+  const l = langByCode(code);
+  if(!l || !l.speech) return false;
+  const base = l.speech.split("-")[0].toLowerCase();
+  return Speech._voices.some(v => v.lang.toLowerCase().replace("_","-").split("-")[0] === base);
+}
+document.addEventListener("gc:voices", () => { try{ refreshLangLabels(); }catch(_){} });
+
 function refreshLangLabels(){
   els.srcLbl.textContent = langByCode(state.src).name;
   els.tgtLbl.textContent = langByCode(state.tgt).name;
@@ -1785,6 +1829,14 @@ function refreshLangLabels(){
   document.getElementById("signTgtLbl").textContent = langByCode(state.signTgt).name;
   document.getElementById("langALbl").textContent = langByCode(state.itpA).name;
   document.getElementById("langBLbl").textContent = langByCode(state.itpB).name;
+  // Listen button reflects real voice availability for the target language
+  const tgtL = langByCode(state.tgt);
+  const hasVoice = speakSupported(state.tgt);
+  els.speakBtn.classList.toggle("novoice", !hasVoice);
+  const sl = document.getElementById("speakLbl");
+  if(sl) sl.textContent = hasVoice ? "Listen" : "No voice";
+  els.speakBtn.title = hasVoice ? "Listen to translation"
+    : "No " + tgtL.name + " voice on this device — tap for how to add one";
 }
 
 els.srcPill.addEventListener("click", () => Picker.open({
@@ -1884,7 +1936,7 @@ async function runTranslate(auto = false){
     if(myReq !== reqSeq) return; // superseded — a newer request owns the UI
     els.outText.classList.add("empty"); els.outText.classList.remove("busy");
     els.outText.textContent = "Translation appears here";
-    if(!auto) toast(err.message || "Couldn't translate right now. Try again.");
+    if(!auto) toast(!navigator.onLine ? "You're offline — reconnect to translate." : (err.message || "Couldn't translate right now. Try again."));
   }finally{
     if(!auto){
       els.translateBtn.disabled = false;
@@ -1908,21 +1960,41 @@ els.speakBtn.addEventListener("click", () => {
     on => els.speakBtn.classList.toggle("speaking", on));
 });
 
-let dictating = false;
-els.micBtn.addEventListener("click", () => {
-  if(dictating){ Speech.stopListening(); return; }
-  const lang = state.src === "auto" ? "en-US" : langByCode(state.src).speech;
-  dictating = true; els.micBtn.classList.add("rec");
-  if(state.src === "auto") toast("Listening in English — pick a source language to dictate in another.");
-  Speech.listen(lang, {
+let dictating = false, dictCancelled = false;
+function startDictation(){
+  const srcL = langByCode(state.src);
+  dictating = true; dictCancelled = false;
+  els.micBtn.classList.add("rec");
+  toast("Listening in " + srcL.name + " \u2014 speak now");
+  let heardSomething = false, erred = false;
+  Speech.listen(srcL.speech, {
     onResult: text => {
+      heardSomething = true;
       els.srcText.value = ((els.srcText.value ? els.srcText.value + " " : "") + text).slice(0, 3000);
       updateCharCount();
-      scheduleAuto(400);
+      scheduleAuto(350);
     },
-    onEnd: () => { dictating = false; els.micBtn.classList.remove("rec"); },
-    onError: msg => { dictating = false; els.micBtn.classList.remove("rec"); toast(msg); },
+    onEnd: () => {
+      dictating = false; els.micBtn.classList.remove("rec");
+      if(!heardSomething && !erred && !dictCancelled)
+        toast("Didn't catch that \u2014 please repeat slowly and clearly.");
+    },
+    onError: msg => { erred = true; dictating = false; els.micBtn.classList.remove("rec"); toast(msg); },
   });
+}
+els.micBtn.addEventListener("click", () => {
+  if(dictating){ dictCancelled = true; Speech.stopListening(); return; }
+  if(state.src === "auto"){
+    // Speech recognition must know which language will be spoken \u2014 one tap to set it.
+    Picker.open({
+      title: "Which language will be spoken?",
+      allowAuto: false,
+      current: null,
+      onPick: code => { state.src = code; refreshLangLabels(); persistUserData(); startDictation(); },
+    });
+    return;
+  }
+  startDictation();
 });
 
 /* ============================================================
@@ -1984,6 +2056,11 @@ const openItpPicker = who => Picker.open({
 });
 document.getElementById("pickA").addEventListener("click", e => { e.stopPropagation(); openItpPicker("a"); });
 document.getElementById("pickB").addEventListener("click", e => { e.stopPropagation(); openItpPicker("b"); });
+document.getElementById("itpClearBtn").addEventListener("click", () => {
+  Speech.stopSpeaking();
+  Interpreter.chat.querySelectorAll(".bubble").forEach(b => b.remove());
+  Interpreter.empty.style.display = "";
+});
 
 /* ============================================================
    FEATURE: Camera Translation (with explicit error reporting)
@@ -2364,7 +2441,21 @@ document.getElementById("voiceBtn").addEventListener("click", () => {
   VoiceSheet.open(l.speech, l.name);
 });
 
-const SAMPLES = {en:"Hello! This is how I sound.", es:"¡Hola! Así sueno.", fr:"Bonjour ! Voici ma voix.", hi:"नमस्ते! मेरी आवाज़ ऐसी है।", de:"Hallo! So klinge ich.", ja:"こんにちは！私の声はこんな感じです。", zh:"你好！这就是我的声音。", ar:"مرحبا! هذا هو صوتي.", bn:"নমস্কার! আমার কণ্ঠস্বর এমন।", ru:"Привет! Вот как я звучу."};
+const SAMPLES = {
+  en:"Hello! This is how I sound.", es:"¡Hola! Así sueno.", fr:"Bonjour ! Voici ma voix.",
+  hi:"नमस्ते! मेरी आवाज़ ऐसी है।", de:"Hallo! So klinge ich.", ja:"こんにちは！私の声はこんな感じです。",
+  zh:"你好！这就是我的声音。", ar:"مرحبا! هذا هو صوتي.", bn:"নমস্কার! আমার কণ্ঠস্বর এমন।",
+  ru:"Привет! Вот как я звучу.", ta:"வணக்கம்! என் குரல் இப்படித்தான் ஒலிக்கிறது.",
+  te:"నమస్తే! నా స్వరం ఇలా ఉంటుంది.", kn:"ನಮಸ್ಕಾರ! ನನ್ನ ಧ್ವನಿ ಹೀಗಿದೆ.",
+  ml:"നമസ്കാരം! എന്റെ ശബ്ദം ഇങ്ങനെയാണ്.", mr:"नमस्कार! माझा आवाज असा आहे.",
+  gu:"નમસ્તે! મારો અવાજ આવો છે.", pa:"ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੇਰੀ ਆਵਾਜ਼ ਇਸ ਤਰ੍ਹਾਂ ਹੈ।",
+  ur:"السلام علیکم! میری آواز ایسی ہے۔", pt:"Olá! É assim que eu soo.",
+  it:"Ciao! Ecco la mia voce.", ko:"안녕하세요! 제 목소리는 이렇습니다.",
+  tr:"Merhaba! Sesim böyle.", vi:"Xin chào! Giọng tôi như thế này.",
+  th:"สวัสดี! เสียงของฉันเป็นแบบนี้", id:"Halo! Seperti inilah suara saya.",
+  nl:"Hallo! Zo klink ik.", pl:"Cześć! Tak brzmię.", uk:"Привіт! Ось як я звучу.",
+  sv:"Hej! Så här låter jag.", he:"שלום! כך אני נשמע.", fa:"سلام! صدای من این‌گونه است."
+};
 document.getElementById("voiceTestBtn").addEventListener("click", () => {
   const l = langByCode(state.tgt);
   const sample = SAMPLES[l.code] || ("Hello from Global Communications, speaking " + l.name + ".");
